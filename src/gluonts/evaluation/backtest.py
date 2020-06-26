@@ -62,6 +62,7 @@ def make_evaluation_predictions(
 
     prediction_length = predictor.prediction_length
     freq = predictor.freq
+    lead_time = predictor.lead_time
 
     def add_ts_dataframe(
         data_iterator: Iterator[DataEntry],
@@ -88,7 +89,7 @@ def make_evaluation_predictions(
         assert (
             target.shape[-1] >= prediction_length
         )  # handles multivariate case (target_dim, history_length)
-        data["target"] = target[..., :-prediction_length]
+        data["target"] = target[..., : -prediction_length - lead_time]
         return data
 
     # TODO filter out time series with target shorter than prediction length
@@ -124,7 +125,10 @@ def backtest_metrics(
     ),
     num_samples: int = 100,
     logging_file: Optional[str] = None,
-    use_symbol_block_predictor: bool = False,
+    use_symbol_block_predictor: Optional[bool] = False,
+    num_workers: Optional[int] = None,
+    num_prefetch: Optional[int] = None,
+    **kwargs,
 ):
     """
     Parameters
@@ -143,6 +147,17 @@ def backtest_metrics(
         If specified, information of the backtest is redirected to this file.
     use_symbol_block_predictor
         Use a :class:`SymbolBlockPredictor` during testing.
+    num_workers
+        The number of multiprocessing workers to use for data preprocessing.
+        By default 0, in which case no multiprocessing will be utilized.
+    num_prefetch
+        The number of prefetching batches only works if `num_workers` > 0.
+        If `prefetch` > 0, it allow worker process to prefetch certain batches before
+        acquiring data from iterators.
+        Note that using large prefetching batch will provide smoother bootstrapping performance,
+        but will consume more shared_memory. Using smaller number may forfeit the purpose of using
+        multiple worker processes, try reduce `num_workers` in this case.
+        By default it defaults to `num_workers * 2`.
 
     Returns
     -------
@@ -185,6 +200,9 @@ def backtest_metrics(
                 batch_size=forecaster.trainer.batch_size,
                 ctx=forecaster.trainer.ctx,
                 dtype=forecaster.dtype,
+                num_workers=num_workers,
+                num_prefetch=num_prefetch,
+                **kwargs,
             )
 
             if forecaster.trainer.hybridize:

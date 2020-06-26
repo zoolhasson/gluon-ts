@@ -29,7 +29,8 @@ from gluonts.model.predictor import Predictor
 
 # Relative imports
 from gluonts.shell.serve import Settings
-from .sagemaker import TrainEnv, ServeEnv
+
+from .sagemaker import ServeEnv, TrainEnv
 
 Forecaster = Type[Union[Estimator, Predictor]]
 
@@ -179,6 +180,12 @@ def train_command(data_path: str, forecaster: Optional[str]) -> None:
 
 if __name__ == "__main__":
     import logging
+    import os
+
+    from gluonts import gluonts_tqdm
+
+    if "TRAINING_JOB_NAME" in os.environ:
+        gluonts_tqdm.USE_TQDM = False
 
     logging.basicConfig(
         level=logging.INFO,

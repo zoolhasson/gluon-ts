@@ -11,21 +11,20 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-from typing import Iterator, List, Tuple, Optional
+from typing import Iterator, List, Optional, Tuple
 
 import numpy as np
 
-from gluonts.core.component import validated, DType
+from gluonts.core.component import DType, validated
 from gluonts.core.exception import assert_data_error
 from gluonts.dataset.common import DataEntry
 from gluonts.model.common import Tensor
-from gluonts.monkey_patch.monkey_patch_take_along_axis import take_along_axis
 from gluonts.support.util import erf, erfinv
 
 from ._base import (
-    SimpleTransformation,
-    MapTransformation,
     FlatMapTransformation,
+    MapTransformation,
+    SimpleTransformation,
 )
 
 
@@ -51,19 +50,10 @@ class AsNumpyArray(SimpleTransformation):
         self.dtype = dtype
 
     def transform(self, data: DataEntry) -> DataEntry:
-        value = data[self.field]
-        if not isinstance(value, float):
-            # this lines produces "ValueError: setting an array element with a
-            # sequence" on our test
-            # value = np.asarray(value, dtype=np.float32)
-            # see https://stackoverflow.com/questions/43863748/
-            value = np.asarray(list(value), dtype=self.dtype)
-        else:
-            # ugly: required as list conversion will fail in the case of a
-            # float
-            value = np.asarray(value, dtype=self.dtype)
+        value = np.asarray(data[self.field], dtype=self.dtype)
+
         assert_data_error(
-            value.ndim >= self.expected_ndim,
+            value.ndim == self.expected_ndim,
             'Input for field "{self.field}" does not have the required'
             "dimension (field: {self.field}, ndim observed: {value.ndim}, "
             "expected ndim: {self.expected_ndim})",
@@ -737,10 +727,13 @@ def cdf_to_gaussian_forward_transform(
         indices = indices.astype(np.int)
 
         transformed = np.where(
-            take_along_axis(slopes, indices, axis=1) != 0.0,
-            (batch_predictions - take_along_axis(intercepts, indices, axis=1))
-            / take_along_axis(slopes, indices, axis=1),
-            take_along_axis(batch_target_sorted, indices, axis=1),
+            np.take_along_axis(slopes, indices, axis=1) != 0.0,
+            (
+                batch_predictions
+                - np.take_along_axis(intercepts, indices, axis=1)
+            )
+            / np.take_along_axis(slopes, indices, axis=1),
+            np.take_along_axis(batch_target_sorted, indices, axis=1),
         )
         return transformed
 
