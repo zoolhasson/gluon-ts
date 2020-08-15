@@ -296,7 +296,8 @@ class DeepAREstimator(GluonEstimator):
                     is_pad_field=FieldName.IS_PAD,
                     start_field=FieldName.START,
                     forecast_start_field=FieldName.FORECAST_START,
-                    train_sampler=ExpectedNumInstanceSampler(num_instances=1),
+                    train_sampler=ExpectedNumInstanceSampler(
+                        num_instances=10000),
                     past_length=self.history_length,
                     future_length=self.prediction_length,
                     time_series_fields=[

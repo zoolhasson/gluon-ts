@@ -25,6 +25,7 @@ from itertools import chain
 import concurrent.futures
 import logging
 import mxnet as mx
+import copy
 
 # First-party imports
 import gluonts
@@ -144,6 +145,7 @@ class TreePredictor(GluonPredictor):
             use_feat_static_cat=use_feat_static_cat,
             use_feat_dynamic_real=use_feat_dynamic_real,
             use_feat_dynamic_cat=use_feat_dynamic_cat,
+            freq=freq,
         )
 
         assert (
@@ -173,9 +175,12 @@ class TreePredictor(GluonPredictor):
         assert self.freq is not None
         if next(iter(training_data))["start"].freq is not None:
             assert self.freq == next(iter(training_data))["start"].freq
-        self.preprocess_object.preprocess_from_list(
-            ts_list=list(training_data), change_internal_variables=True
-        )
+        self.preprocess_object.preprocess_from_dataset(
+                dataset=training_data, change_internal_variables=True
+             )
+        #self.preprocess_object.preprocess_from_list(
+        #    ts_list=list(training_data), change_internal_variables=True
+    #)
         feature_data, target_data = (
             self.preprocess_object.feature_data,
             self.preprocess_object.target_data,
@@ -234,15 +239,21 @@ class TreePredictor(GluonPredictor):
             log_once(
                 "Forecast is not sample based. Ignoring parameter `num_samples` from predict method."
             )
-
-        for ts in dataset:
-            featurized_data = self.preprocess_object.make_features(
-                ts, starting_index=len(ts["target"]) - context_length
-            )
+        #dataset2 = copy.deepcopy(dataset)
+        featurized_data_plural = \
+            list(self.preprocess_object.preprocess_from_dataset_test(
+            dataset)[0])
+        #print(featurized_data_plural)
+        for n, ts in enumerate(featurized_data_plural):
+            #featurized_data = self.preprocess_object.make_features(
+            #    ts, starting_index=len(ts["target"]) - context_length
+            #)
+            featurized_data = featurized_data_plural[n]
+            #print(featurized_data)
             yield RotbaumForecast(
                 self.model_list,
                 [featurized_data],
-                start_date=forecast_start(ts),
+                start_date=pd.Timestamp('2020'),#forecast_start(ts),
                 prediction_length=self.prediction_length,
                 freq=self.freq,
             )

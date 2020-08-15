@@ -18,9 +18,11 @@ from typing import List, Tuple, Dict
 # Third-party imports
 import numpy as np
 import logging
+import random
 
 # First-party imports
 from gluonts.core.component import validated
+from gluonts.model.deepar import DeepAREstimator
 
 
 class PreprocessGeneric:
@@ -33,6 +35,7 @@ class PreprocessGeneric:
     def __init__(
         self,
         context_window_size: int,
+        freq: str,
         forecast_horizon: int = 1,
         stratify_targets: bool = False,
         n_ignore_last: int = 0,
@@ -73,6 +76,7 @@ class PreprocessGeneric:
         self.num_samples = None
         self.feature_data = None
         self.target_data = None
+        self.freq = freq
 
     def make_features(self, time_series, starting_index):
         """
@@ -182,6 +186,46 @@ class PreprocessGeneric:
                 )
         return feature_data, target_data
 
+    def preprocess_from_dataset_test(
+        self, dataset, change_internal_variables: bool = False
+    ) -> Tuple:
+        x = DeepAREstimator(freq=self.freq,
+                            prediction_length=self.forecast_horizon)
+        t = x.create_transformation()
+        g = list(t(dataset, is_train=False))
+        #print(g[0])
+        feature_data, target_data = np.array([np.array(i['past_target']) for i
+                                              in g]), \
+                                    np.array([np.array(i['future_target']) for
+                                              i in g])
+        #print('feature', feature_data)
+        #print('target', target_data)
+        if change_internal_variables:
+            self.feature_data, self.target_data = feature_data, target_data
+        return feature_data, target_data
+
+    def preprocess_from_dataset(
+        self, dataset, change_internal_variables: bool = True
+    ) -> Tuple:
+        x = DeepAREstimator(freq=self.freq,
+                            prediction_length=self.forecast_horizon)
+        t = x.create_transformation()
+        g = list(t(dataset, is_train=True))
+
+        print(len(g))
+        g = random.sample(g, min(len(g), self.max_n_datapts))
+        print(len(g))
+        feature_data, target_data = np.array([np.array(i['past_target']) for i
+                                              in g]), \
+                                    np.array([np.array(i['future_target']) for
+                                              i in g])
+        #print('feature', feature_data)
+        #print('target', target_data)
+        if change_internal_variables:
+            self.feature_data, self.target_data = feature_data, target_data
+        return feature_data, target_data
+
+
     def preprocess_from_list(
         self, ts_list, change_internal_variables: bool = True
     ) -> Tuple:
@@ -203,6 +247,8 @@ class PreprocessGeneric:
             If change_internal_variables is False, then returns:
             list of feature datapoints, list of target datapoints
         """
+
+
         feature_data, target_data = [], []
         self.num_samples = self.get_num_samples(ts_list)
         for time_series in ts_list:
