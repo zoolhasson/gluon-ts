@@ -190,7 +190,8 @@ class PreprocessGeneric:
         self, dataset, change_internal_variables: bool = False
     ) -> Tuple:
         x = DeepAREstimator(freq=self.freq,
-                            prediction_length=self.forecast_horizon)
+                            prediction_length=self.forecast_horizon,
+                            context_length=self.context_window_size)
         t = x.create_transformation()
         g = list(t(dataset, is_train=False))
         #print(g[0])
