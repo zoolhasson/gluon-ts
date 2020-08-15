@@ -40,6 +40,7 @@ class PreprocessGeneric:
         stratify_targets: bool = False,
         n_ignore_last: int = 0,
         max_n_datapts: int = 400000,
+        passing: int = 10000,
         **kwargs
     ):
         """
@@ -76,6 +77,7 @@ class PreprocessGeneric:
         self.num_samples = None
         self.feature_data = None
         self.target_data = None
+        self.passing = passing
         self.freq = freq
 
     def make_features(self, time_series, starting_index):
@@ -191,7 +193,8 @@ class PreprocessGeneric:
     ) -> Tuple:
         x = DeepAREstimator(freq=self.freq,
                             prediction_length=self.forecast_horizon,
-                            context_length=self.context_window_size)
+                            context_length=self.context_window_size,
+                            passing=self.passing)
         t = x.create_transformation()
         g = list(t(dataset, is_train=False))
         #print(g[0])
@@ -210,7 +213,8 @@ class PreprocessGeneric:
     ) -> Tuple:
         x = DeepAREstimator(freq=self.freq,
                             prediction_length=self.forecast_horizon,
-                            context_length=self.context_window_size)
+                            context_length=self.context_window_size,
+                            passing=self.passing)
         t = x.create_transformation()
         g = list(t(dataset, is_train=True))
 

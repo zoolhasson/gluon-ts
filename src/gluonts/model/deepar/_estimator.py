@@ -143,6 +143,7 @@ class DeepAREstimator(GluonEstimator):
         num_parallel_samples: int = 100,
         imputation_method: Optional[MissingValueImputation] = None,
         dtype: DType = np.float32,
+        passing: int = 10000,
     ) -> None:
         super().__init__(trainer=trainer, dtype=dtype)
 
@@ -182,6 +183,7 @@ class DeepAREstimator(GluonEstimator):
         self.use_feat_dynamic_real = use_feat_dynamic_real
         self.use_feat_static_cat = use_feat_static_cat
         self.use_feat_static_real = use_feat_static_real
+        self.passing = passing
         self.cardinality = (
             cardinality if cardinality and use_feat_static_cat else [1]
         )
@@ -297,7 +299,7 @@ class DeepAREstimator(GluonEstimator):
                     start_field=FieldName.START,
                     forecast_start_field=FieldName.FORECAST_START,
                     train_sampler=ExpectedNumInstanceSampler(
-                        num_instances=10000),
+                        num_instances=self.passing),
                     past_length=self.history_length,
                     future_length=self.prediction_length,
                     time_series_fields=[
