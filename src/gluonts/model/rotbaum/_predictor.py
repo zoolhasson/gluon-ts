@@ -126,6 +126,7 @@ class TreePredictor(GluonPredictor):
         model_params: Optional[dict] = None,
         max_workers: Optional[int] = None,
         method: str = "QRX",
+        passing: int = 10000,
         quantiles=None,  # Used only for "QuantileRegression" method.
     ) -> None:
         assert method in [
@@ -146,6 +147,7 @@ class TreePredictor(GluonPredictor):
             use_feat_dynamic_real=use_feat_dynamic_real,
             use_feat_dynamic_cat=use_feat_dynamic_cat,
             freq=freq,
+            passing = passing
         )
 
         assert (
